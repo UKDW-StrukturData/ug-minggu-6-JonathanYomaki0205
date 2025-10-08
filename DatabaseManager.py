@@ -18,23 +18,105 @@ class excelManager:
     def insertData(self,newData:dict,saveChange:bool=False):
         # kerjakan disini
         # clue cara insert row: df = pandas.concat([df, pandas.DataFrame([{"NIM":0,"Nama":"Udin","Nilai":1000}])], ignore_index=True)
+        # Pastikan newData memiliki struktur yang benar
+        required_keys = ["NIM", "Nama", "Nilai"]
         
-        if (saveChange): self.saveChange()
-        pass
+        # Validasi data input
+        for key in required_keys:
+            if key not in newData:
+                return False
+        
+        # Cek duplikasi NIM
+        existing_data = self.getData("NIM", str(newData["NIM"]))
+        if existing_data is not None:
+            return False
+        
+        # Validasi nama tidak mengandung angka
+        nama = str(newData["Nama"])
+        if any(char.isdigit() for char in nama):
+            return False
+        
+        # Pastikan tipe data konsisten
+        formatted_data = {
+            "NIM": str(newData["NIM"]).strip(),
+            "Nama": str(newData["Nama"]).strip(),
+            "Nilai": int(newData["Nilai"])
+        }
+        
+        # Insert data baru dengan struktur yang konsisten
+        new_row = pandas.DataFrame([formatted_data])
+        self.__data = pandas.concat([self.__data, new_row], ignore_index=True)
+        
+        # Pastikan struktur kolom tetap 3 kolom
+        self.__data = self.__data[["NIM", "Nama", "Nilai"]]
+        
+        if saveChange: 
+            self.saveChange()
+        
+        return True
     
     def deleteData(self, targetedNim:str,saveChange:bool=False):
         # kerjakan disini
         # clue cara delete row: df.drop(indexBaris, inplace=True); contoh: df.drop(0,inplace=True)
         
+         # Cari data berdasarkan NIM yang ditargetkan
+        data_to_delete = self.getData("NIM", targetedNim)
         
-        if (saveChange): self.saveChange()
-        pass
+        # Jika NIM tidak ditemukan, return False
+        if data_to_delete is None:
+            return False
+        
+        # Dapatkan index baris yang akan dihapus
+        row_index = data_to_delete["Row"]
+        
+        # Hapus baris dari dataframe
+        self.__data.drop(row_index, inplace=True)
+        
+        # Reset index dataframe agar berurutan kembali
+        self.__data.reset_index(drop=True, inplace=True)
+        
+        # Jika saveChange True, simpan perubahan ke file excel
+        if saveChange: 
+            self.saveChange()
+        
+        return True  # Return True jika berhasil dihapus
     
     def editData(self, targetedNim:str, newData:dict,saveChange:bool=False) -> dict:
         # kerjakan disini
         # clue cara ganti value: df.at[indexBaris,namaKolom] = value; contoh: df.at[0,ID] = 1
-        if (saveChange): self.saveChange()
-        pass
+        # Cari data lama
+        old_data = self.getData("NIM", targetedNim)
+        if old_data is None:
+            return None
+        
+        row_index = old_data["Row"]
+        
+        # Validasi NIM baru tidak duplikat (jika diubah)
+        if targetedNim != newData["NIM"]:
+            existing_data = self.getData("NIM", newData["NIM"])
+            if existing_data is not None:
+                return None
+        
+        # Validasi nama tidak mengandung angka
+        nama_baru = str(newData["Nama"])
+        if any(char.isdigit() for char in nama_baru):
+            return None
+        
+        # Format data baru
+        formatted_data = {
+            "NIM": str(newData["NIM"]).strip(),
+            "Nama": str(newData["Nama"]).strip(),
+            "Nilai": int(newData["Nilai"])
+        }
+        
+        # Update data
+        for column, value in formatted_data.items():
+            self.__data.at[row_index, column] = value
+        
+        if saveChange: 
+            self.saveChange()
+        
+        return self.getData("NIM", newData["NIM"])
     
                     
     def getData(self, colName:str, data:str) -> dict:
@@ -48,8 +130,7 @@ class excelManager:
         
         # nama kolom yang sudah pasti benar dan ada
         colName = collumn[collumnIndex[0]]
-        
-        
+
         resultDict = dict() # tempat untuk hasil
         
         for i in self.__data.index: # perulangan ke baris tabel

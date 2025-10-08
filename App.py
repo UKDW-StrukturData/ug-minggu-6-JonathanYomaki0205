@@ -55,10 +55,37 @@ if (filterSelectBox == "None"):
     st.table(em.getDataFrame()) # tabel biasa
 else:
     targetFilterColumn = st.selectbox("Target Column",["NIM","Nilai"]) # pilihan kolom
-    filter = st.text_input("Filter Nilai") # input angka filter
+    filter_value = st.text_input("Filter Nilai") # input angka filter
 
-if (filter != ""):
-    if (filterSelectBox == ">"):
-        st.table(em.getDataFrame()[em.getDataFrame()[targetFilterColumn] > int(filter)]) # cara filter
-    # TODO: lanjutkan code di atas
-    # note: cara filter ada di modul
+# Sistem filter berdasarkan modul
+if filterSelectBox != "None" and filter_value != "":
+    try:
+        # Konversi input filter menjadi integer
+        filter_num = int(filter_value)
+        df = em.getDataFrame()
+        
+        # Filter berdasarkan operator yang dipilih
+        if filterSelectBox == ">":
+            filtered_df = df[df[targetFilterColumn] > filter_num]
+        elif filterSelectBox == "<":
+            filtered_df = df[df[targetFilterColumn] < filter_num]
+        elif filterSelectBox == "=":
+            filtered_df = df[df[targetFilterColumn] == filter_num]
+        elif filterSelectBox == "<=":
+            filtered_df = df[df[targetFilterColumn] <= filter_num]
+        elif filterSelectBox == ">=":
+            filtered_df = df[df[targetFilterColumn] >= filter_num]
+        
+        # Tampilkan hasil filter
+        if len(filtered_df) > 0:
+            st.success(f"Data ditemukan: {len(filtered_df)} record")
+            st.table(filtered_df)
+        else:
+            st.info("Tidak ada data yang sesuai dengan filter")
+            
+    except ValueError:
+        st.error("Filter value harus berupa angka")
+        
+elif filterSelectBox != "None" and filter_value == "":
+    # Jika operator dipilih tapi nilai filter kosong, tampilkan tabel biasa
+    st.table(em.getDataFrame())
